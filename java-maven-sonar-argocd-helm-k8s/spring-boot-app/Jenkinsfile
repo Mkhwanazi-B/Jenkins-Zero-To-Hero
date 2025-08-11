@@ -10,7 +10,6 @@ pipeline {
   }
   stages {
     stage('Clean Workspace') {
-      agent { label 'master' }  // run on Jenkins host, NOT inside container
       steps {
         script {
           echo "Cleaning workspace on Jenkins node..."
