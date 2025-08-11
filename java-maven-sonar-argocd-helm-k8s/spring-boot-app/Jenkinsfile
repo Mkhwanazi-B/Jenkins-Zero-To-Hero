@@ -3,21 +3,19 @@ pipeline {
     docker {
       image 'blessing67/my-maven-docker-agent:latest'
       args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+      reuseNode true
     }
   }
 
   options {
-    skipDefaultCheckout()   // we will do our own clone later
+    skipDefaultCheckout()
   }
 
   stages {
-    /* ----------------------------------------------------------
-       1. Clean workspace + clone repo
-    ---------------------------------------------------------- */
     stage('Checkout Code') {
       steps {
         script {
-          echo "Cleaning and cloning repository ..."
+          echo 'Cleaning & cloning repository...'
           sh '''
             sudo chown -R jenkins:jenkins "$WORKSPACE" || true
             sudo chmod -R u+rw "$WORKSPACE" || true
@@ -30,10 +28,7 @@ pipeline {
       }
     }
 
-    /* ----------------------------------------------------------
-       2. Build & test
-    ---------------------------------------------------------- */
-    stage('Build and Test') {
+    stage('Build & Test') {
       steps {
         dir('java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
           sh 'mvn clean package'
@@ -41,9 +36,6 @@ pipeline {
       }
     }
 
-    /* ----------------------------------------------------------
-       3. Static analysis
-    ---------------------------------------------------------- */
     stage('Static Code Analysis') {
       environment {
         SONAR_URL = 'http://13.51.174.95:9000'
@@ -57,10 +49,7 @@ pipeline {
       }
     }
 
-    /* ----------------------------------------------------------
-       4. Build & push Docker image
-    ---------------------------------------------------------- */
-    stage('Build and Push Docker Image') {
+    stage('Build & Push Docker Image') {
       environment {
         DOCKER_IMAGE = "blessing67/ultimate-cicd:${BUILD_NUMBER}"
       }
@@ -76,9 +65,6 @@ pipeline {
       }
     }
 
-    /* ----------------------------------------------------------
-       5. Update GitOps manifest  (fixed: run in root workspace)
-    ---------------------------------------------------------- */
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = 'Jenkins-Zero-To-Hero'
@@ -86,7 +72,7 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-          dir("${WORKSPACE}") {          // <-- ensures .git is present
+          dir("${WORKSPACE}") {
             sh '''
               git config user.email "blessing67mkhwanazi@gmail.com"
               git config user.name  "Blessing Mkhwanazi"
