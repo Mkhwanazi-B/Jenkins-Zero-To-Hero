@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
+      image 'blessing67/my-maven-docker-agent:latest'  // your custom image on Docker Hub
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
@@ -31,7 +31,7 @@ pipeline {
 
     stage('Build and Push Docker Image') {
       environment {
-        DOCKER_IMAGE = "abhishekf5/ultimate-cicd:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "blessing67/ultimate-cicd:${BUILD_NUMBER}"  // updated to your Docker Hub repo
       }
       steps {
         script {
