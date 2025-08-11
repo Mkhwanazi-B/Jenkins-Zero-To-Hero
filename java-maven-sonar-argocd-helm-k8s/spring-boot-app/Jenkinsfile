@@ -1,18 +1,19 @@
 pipeline {
-  agent {
-    docker {
-      image 'blessing67/my-maven-docker-agent:latest'
-      args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
-      reuseNode true
-    }
-  }
+  agent none          // we specify per-stage agents
 
   options {
     skipDefaultCheckout()
   }
 
   stages {
+    /* 1. Clean workspace + clone repo inside a Docker agent */
     stage('Checkout Code') {
+      agent {
+        docker {
+          image 'blessing67/my-maven-docker-agent:latest'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+      }
       steps {
         script {
           echo 'Cleaning & cloning repository...'
@@ -28,7 +29,14 @@ pipeline {
       }
     }
 
-    stage('Build & Test') {
+    /* 2. Build & test */
+    stage('Build and Test') {
+      agent {
+        docker {
+          image 'blessing67/my-maven-docker-agent:latest'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+      }
       steps {
         dir('java-maven-sonar-argocd-helm-k8s/spring-boot-app') {
           sh 'mvn clean package'
@@ -36,7 +44,14 @@ pipeline {
       }
     }
 
+    /* 3. Static code analysis */
     stage('Static Code Analysis') {
+      agent {
+        docker {
+          image 'blessing67/my-maven-docker-agent:latest'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+      }
       environment {
         SONAR_URL = 'http://13.51.174.95:9000'
       }
@@ -49,7 +64,14 @@ pipeline {
       }
     }
 
-    stage('Build & Push Docker Image') {
+    /* 4. Build & push Docker image */
+    stage('Build and Push Docker Image') {
+      agent {
+        docker {
+          image 'blessing67/my-maven-docker-agent:latest'
+          args '-v /var/run/docker.sock:/var/run/docker.sock --user root'
+        }
+      }
       environment {
         DOCKER_IMAGE = "blessing67/ultimate-cicd:${BUILD_NUMBER}"
       }
@@ -65,7 +87,9 @@ pipeline {
       }
     }
 
+    /* 5. Update GitOps manifest on Jenkins host (keeps .git) */
     stage('Update Deployment File') {
+      agent any        // runs on Jenkins host; workspace already has .git
       environment {
         GIT_REPO_NAME = 'Jenkins-Zero-To-Hero'
         GIT_USER_NAME = 'Mkhwanazi-B'
