@@ -1,12 +1,12 @@
 pipeline {
-  agent none          // we specify per-stage agents
+  agent none          // use per-stage agents
 
   options {
     skipDefaultCheckout()
   }
 
   stages {
-    /* 1. Clean workspace + clone repo inside a Docker agent */
+    /* 1. Clean & clone */
     stage('Checkout Code') {
       agent {
         docker {
@@ -44,7 +44,7 @@ pipeline {
       }
     }
 
-    /* 3. Static code analysis */
+    /* 3. SonarQube */
     stage('Static Code Analysis') {
       agent {
         docker {
@@ -64,7 +64,7 @@ pipeline {
       }
     }
 
-    /* 4. Build & push Docker image */
+    /* 4. Docker build & push */
     stage('Build and Push Docker Image') {
       agent {
         docker {
@@ -87,9 +87,9 @@ pipeline {
       }
     }
 
-    /* 5. Update GitOps manifest on Jenkins host (keeps .git) */
+    /* 5. GitOps commit (host side) */
     stage('Update Deployment File') {
-      agent any        // runs on Jenkins host; workspace already has .git
+      agent any        // runs on Jenkins host, keeps .git
       environment {
         GIT_REPO_NAME = 'Jenkins-Zero-To-Hero'
         GIT_USER_NAME = 'Mkhwanazi-B'
@@ -105,7 +105,9 @@ pipeline {
                 java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
 
               git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-              git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+              git diff --cached --quiet || \
+                git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+
               git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
             '''
           }
