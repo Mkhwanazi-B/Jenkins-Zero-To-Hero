@@ -8,6 +8,8 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
+        // Clean workspace before checkout
+        cleanWs()
         git branch: 'main', url: 'https://github.com/Mkhwanazi-B/Jenkins-Zero-To-Hero.git'
       }
     }
